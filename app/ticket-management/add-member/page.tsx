@@ -1,0 +1,403 @@
+"use client";
+
+import { useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
+import { RefreshCw, UserPlus, AlertCircle, CheckCircle2, Users, Search, Camera } from "lucide-react";
+import QRScanner from "@/components/QRScanner";
+
+interface User {
+  id: string;
+  name: string;
+  email: string;
+  phone?: string;
+}
+
+interface Member {
+  stud_id: string;
+  name: string;
+}
+
+interface Ticket {
+  id: string;
+  event_name: string;
+  team_name?: string;
+  members: Member[];
+  max_size: number;
+}
+
+export default function AddMemberPage() {
+  const router = useRouter();
+  const [loading, setLoading] = useState(false);
+  const [adding, setAdding] = useState(false);
+  const [message, setMessage] = useState<{ type: "error" | "success"; text: string } | null>(null);
+  const [showScanner, setShowScanner] = useState(false);
+
+  // Form state
+  const [ticketId, setTicketId] = useState("");
+  const [eventId, setEventId] = useState("");
+  const [newUserId, setNewUserId] = useState("");
+  const [maxTeamSize, setMaxTeamSize] = useState(4);
+
+  // Ticket info state
+  const [ticket, setTicket] = useState<Ticket | null>(null);
+  const [loadingTicket, setLoadingTicket] = useState(false);
+
+  // New user state
+  const [newUser, setNewUser] = useState<User | null>(null);
+  const [searchUser, setSearchUser] = useState("");
+  const [userResults, setUserResults] = useState<User[]>([]);
+  const [searchingUser, setSearchingUser] = useState(false);
+
+  useEffect(() => {
+    // Auto-dismiss messages after 5 seconds
+    if (message) {
+      const timer = setTimeout(() => setMessage(null), 5000);
+      return () => clearTimeout(timer);
+    }
+  }, [message]);
+
+  const handleScan = (data: string) => {
+    try {
+      // Parse QR code data
+      const parsed = JSON.parse(data);
+      if (parsed.ticket_id) setTicketId(parsed.ticket_id);
+      if (parsed.event_id) setEventId(parsed.event_id);
+      if (parsed.user_id) setNewUserId(parsed.user_id);
+      setShowScanner(false);
+      setMessage({ type: "success", text: "QR code scanned successfully" });
+    } catch (err) {
+      setMessage({ type: "error", text: "Invalid QR code format" });
+      setShowScanner(false);
+    }
+  };
+
+  const loadTicketInfo = async () => {
+    if (!ticketId || !eventId) return;
+
+    setLoadingTicket(true);
+    try {
+      const response = await fetch(`/api/tickets/info?ticket_id=${ticketId}&event_id=${eventId}`);
+      if (response.ok) {
+        const data = await response.json();
+        setTicket(data.ticket);
+      } else {
+        setMessage({ type: "error", text: "Failed to load ticket information" });
+      }
+    } catch (error) {
+      console.error("Load ticket error:", error);
+      setMessage({ type: "error", text: "Error loading ticket information" });
+    } finally {
+      setLoadingTicket(false);
+    }
+  };
+
+  const searchUsers = async (query: string) => {
+    if (query.length < 2) return;
+
+    setSearchingUser(true);
+    try {
+      // This would call your user search API
+      const response = await fetch(`/api/users/search?q=${encodeURIComponent(query)}`);
+      if (response.ok) {
+        const data = await response.json();
+        setUserResults(data.users || []);
+      }
+    } catch (error) {
+      console.error("Search error:", error);
+    } finally {
+      setSearchingUser(false);
+    }
+  };
+
+  const selectUser = (user: User) => {
+    setNewUser(user);
+    setNewUserId(user.id);
+    setSearchUser(user.name);
+    setUserResults([]);
+  };
+
+  const handleAddMember = async (e: React.FormEvent) => {
+    e.preventDefault();
+
+    if (!ticketId || !newUserId || !eventId) {
+      setMessage({ type: "error", text: "Please fill in all required fields" });
+      return;
+    }
+
+    setAdding(true);
+    setMessage(null);
+
+    try {
+      const response = await fetch("/api/tickets/add-member", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          ticket_id: ticketId,
+          new_user_id: newUserId,
+          event_id: eventId,
+          max_team_size: maxTeamSize,
+        }),
+      });
+
+      const data = await response.json();
+
+      if (data.ok) {
+        setMessage({ 
+          type: "success", 
+          text: `Successfully added ${newUser?.name} to ticket ${ticketId}. Total members: ${data.total_members}` 
+        });
+        
+        // Reset form after 2 seconds
+        setTimeout(() => {
+          setNewUserId("");
+          setNewUser(null);
+          setSearchUser("");
+          loadTicketInfo(); // Reload ticket info
+        }, 2000);
+      } else {
+        setMessage({ type: "error", text: data.error || "Failed to add member" });
+      }
+    } catch (error) {
+      console.error("Add member error:", error);
+      setMessage({ type: "error", text: "An error occurred while adding the member" });
+    } finally {
+      setAdding(false);
+    }
+  };
+
+  return (
+    <div className="min-h-screen bg-gradient-to-br from-gray-900 via-black to-gray-800 p-4 md:p-8">
+      <div className="max-w-4xl mx-auto">
+        {/* Header */}
+        <div className="mb-8">
+          <button
+            onClick={() => router.back()}
+            className="text-orange-500 hover:text-orange-400 font-medium mb-4 flex items-center gap-2"
+          >
+            ← Back
+          </button>
+          <h1 className="text-3xl font-bold text-white flex items-center gap-3">
+            <UserPlus className="w-8 h-8 text-orange-500" />
+            Add Member to Ticket
+          </h1>
+          <p className="text-gray-400 mt-2">
+            Add a new member to an existing team ticket. The ticket must have space available.
+          </p>
+        </div>
+
+        {/* Message Display */}
+        {message && (
+          <div
+            className={`mb-6 p-4 rounded-lg flex items-start gap-3 ${
+              message.type === "error"
+                ? "bg-red-900/30 border border-red-700 text-red-300"
+                : "bg-green-900/30 border border-green-700 text-green-300"
+            }`}
+          >
+            {message.type === "error" ? (
+              <AlertCircle className="w-5 h-5 mt-0.5 flex-shrink-0" />
+            ) : (
+              <CheckCircle2 className="w-5 h-5 mt-0.5 flex-shrink-0" />
+            )}
+            <p className="flex-1">{message.text}</p>
+            <button
+              onClick={() => setMessage(null)}
+              className="text-gray-400 hover:text-gray-200"
+            >
+              ×
+            </button>
+          </div>
+        )}
+
+        {/* Add Member Form */}
+        <div className="bg-gray-800 rounded-xl shadow-lg p-6 md:p-8 border border-gray-700">
+          <form onSubmit={handleAddMember} className="space-y-6">
+            {/* Scan QR Button */}
+            <button
+              type="button"
+              onClick={() => setShowScanner(true)}
+              className="w-full bg-orange-600 hover:bg-orange-700 text-white font-semibold py-3 px-6 rounded-lg transition-colors flex items-center justify-center gap-2"
+            >
+              <Camera className="w-5 h-5" />
+              Scan QR Code to Fill Details
+            </button>
+
+            <div className="relative">
+              <div className="absolute inset-0 flex items-center">
+                <div className="w-full border-t border-gray-300"></div>
+              </div>
+              <div className="relative flex justify-center text-sm">
+                <span className="px-4 bg-gray-800 text-gray-400">Or enter manually</span>
+              </div>
+            </div>
+
+            {/* Ticket and Event Info */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm font-semibold text-gray-300 mb-2">
+                  Ticket ID *
+                </label>
+                <input
+                  type="text"
+                  value={ticketId}
+                  onChange={(e) => setTicketId(e.target.value)}
+                  placeholder="Enter ticket ID"
+                  className="w-full px-4 py-3 bg-gray-900 border border-gray-600 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent text-white placeholder-gray-500"
+                  required
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-semibold text-gray-300 mb-2">
+                  Event ID *
+                </label>
+                <input
+                  type="text"
+                  value={eventId}
+                  onChange={(e) => setEventId(e.target.value)}
+                  placeholder="Enter event ID"
+                  className="w-full px-4 py-3 bg-gray-900 border border-gray-600 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent text-white placeholder-gray-500"
+                  required
+                />
+              </div>
+            </div>
+
+            {/* Load Ticket Button */}
+            <button
+              type="button"
+              onClick={loadTicketInfo}
+              disabled={!ticketId || !eventId || loadingTicket}
+              className="w-full bg-gray-700 hover:bg-gray-600 disabled:bg-gray-600 text-white font-medium py-2 px-4 rounded-lg transition-colors flex items-center justify-center gap-2"
+            >
+              {loadingTicket ? (
+                <>
+                  <RefreshCw className="w-4 h-4 animate-spin" />
+                  Loading...
+                </>
+              ) : (
+                <>
+                  <Search className="w-4 h-4" />
+                  Load Ticket Info
+                </>
+              )}
+            </button>
+
+            {/* Current Ticket Info */}
+            {ticket && (
+              <div className="p-4 bg-orange-900/30 border border-orange-700 rounded-lg">
+                <h3 className="font-semibold text-white mb-3 flex items-center gap-2">
+                  <Users className="w-5 h-5 text-orange-500" />
+                  Current Ticket Information
+                </h3>
+                <div className="space-y-2 text-sm">
+                  <p className="text-gray-300">
+                    <span className="font-medium">Event:</span> {ticket.event_name}
+                  </p>
+                  {ticket.team_name && (
+                    <p className="text-gray-300">
+                      <span className="font-medium">Team:</span> {ticket.team_name}
+                    </p>
+                  )}
+                  <p className="text-gray-300">
+                    <span className="font-medium">Current Members:</span> {ticket.members.length} / {ticket.max_size}
+                  </p>
+                  <div className="mt-3">
+                    <p className="font-medium mb-2 text-gray-300">Members:</p>
+                    <ul className="space-y-1 pl-4">
+                      {ticket.members.map((member) => (
+                        <li key={member.stud_id} className="text-gray-400">
+                          • {member.name}
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* New User to Add */}
+            <div>
+              <label className="block text-sm font-semibold text-gray-300 mb-2">
+                New User ID *
+              </label>
+              <input
+                type="text"
+                value={newUserId}
+                onChange={(e) => setNewUserId(e.target.value)}
+                placeholder="Enter user ID to add"
+                className="w-full px-4 py-3 bg-gray-900 border border-gray-600 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent text-white placeholder-gray-500"
+                required
+              />
+              {newUser && (
+                <div className="mt-2 p-3 bg-orange-900/30 border border-orange-700 rounded-lg">
+                  <p className="text-sm font-medium text-white">{newUser.name}</p>
+                  <p className="text-sm text-gray-400">{newUser.email}</p>
+                </div>
+              )}
+            </div>
+
+            {/* Max Team Size */}
+            <div>
+              <label className="block text-sm font-semibold text-gray-300 mb-2">
+                Max Team Size
+              </label>
+              <select
+                value={maxTeamSize}
+                onChange={(e) => setMaxTeamSize(Number(e.target.value))}
+                className="w-full px-4 py-3 bg-gray-900 border border-gray-600 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent text-white"
+              >
+                <option value={2}>2 members</option>
+                <option value={3}>3 members</option>
+                <option value={4}>4 members</option>
+                <option value={5}>5 members</option>
+                <option value={6}>6 members</option>
+              </select>
+              <p className="text-xs text-gray-400 mt-1">
+                Maximum number of members allowed for this ticket
+              </p>
+            </div>
+
+            {/* Submit Button */}
+            <button
+              type="submit"
+              disabled={adding || !ticket}
+              className="w-full bg-orange-600 hover:bg-orange-700 disabled:bg-gray-600 text-white font-semibold py-3 px-6 rounded-lg transition-colors flex items-center justify-center gap-2"
+            >
+              {adding ? (
+                <>
+                  <RefreshCw className="w-5 h-5 animate-spin" />
+                  Adding Member...
+                </>
+              ) : (
+                <>
+                  <UserPlus className="w-5 h-5" />
+                  Add Member to Ticket
+                </>
+              )}
+            </button>
+          </form>
+        </div>
+
+        {/* Info Box */}
+        <div className="mt-6 p-4 bg-orange-900/30 border border-orange-700 rounded-lg">
+          <h3 className="font-semibold text-orange-400 mb-2">ℹ️ Important Notes:</h3>
+          <ul className="text-sm text-gray-300 space-y-1 list-disc list-inside">
+            <li>The user must exist in the system and not already be in the ticket</li>
+            <li>The ticket must have available space (not at max capacity)</li>
+            <li>The ticket must be active</li>
+            <li>The ticket must belong to the specified event</li>
+            <li>Load ticket info first to see current members and available space</li>
+          </ul>
+        </div>
+      </div>
+
+      {/* QR Scanner Modal */}
+      {showScanner && (
+        <QRScanner
+          onScan={handleScan}
+          onClose={() => setShowScanner(false)}
+        />
+      )}
+    </div>
+  );
+}
