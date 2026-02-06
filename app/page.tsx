@@ -68,8 +68,7 @@ export default function Home() {
             </div>
             <h3 className="text-xl font-bold text-white mb-2">Mark Attendance</h3>
             <p className="text-gray-400">
-              Master attendance marking with QR code scanning support for any event and
-              participant validation.
+              Simplified attendance marking - just scan or enter ticket ID to mark all team members present at once.
             </p>
           </div>
 

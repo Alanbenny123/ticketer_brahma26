@@ -14,8 +14,6 @@ export default function AttendancePage() {
 
   const [formData, setFormData] = useState({
     ticket_id: "",
-    event_id: "",
-    user_id: "",
   });
 
   const handleScan = (data: string) => {
@@ -25,16 +23,14 @@ export default function AttendancePage() {
       const parsed = JSON.parse(data);
       setFormData({
         ticket_id: parsed.ticket_id || "",
-        event_id: parsed.event_id || "",
-        user_id: parsed.user_id || "",
       });
       setShowScanner(false);
-      if (parsed.ticket_id || parsed.event_id || parsed.user_id) {
+      if (parsed.ticket_id) {
         setError("");
         setSuccess(true);
         setTimeout(() => setSuccess(false), 2000);
       } else {
-        setError("QR code is valid JSON but missing required fields");
+        setError("QR code is valid JSON but missing ticket_id");
       }
     } catch (err) {
       // If not JSON, try plain text format
@@ -44,8 +40,6 @@ export default function AttendancePage() {
         if (data.length < 50 && !data.includes('http')) {
           setFormData({
             ticket_id: data,
-            event_id: "",
-            user_id: "",
           });
           setError("");
         } else {
@@ -74,7 +68,7 @@ export default function AttendancePage() {
 
       if (data.ok) {
         setSuccess(true);
-        setFormData({ ticket_id: "", event_id: "", user_id: "" });
+        setFormData({ ticket_id: "" });
         setTimeout(() => setSuccess(false), 3000);
       } else {
         setError(data.error || "Failed to mark attendance");
@@ -96,7 +90,7 @@ export default function AttendancePage() {
             <h1 className="text-4xl font-bold text-white">Master Attendance</h1>
           </div>
           <p className="text-gray-400 text-lg">
-            Mark attendance for any event by scanning QR codes or manual entry
+            Scan ticket QR code or enter ticket ID to mark attendance for all team members
           </p>
         </div>
 
@@ -132,39 +126,9 @@ export default function AttendancePage() {
               <input
                 type="text"
                 value={formData.ticket_id}
-                onChange={(e) => setFormData({ ...formData, ticket_id: e.target.value })}
+                onChange={(e) => setFormData({ ticket_id: e.target.value })}
                 className="w-full px-4 py-3 bg-gray-900 border border-gray-600 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent transition-colors"
                 placeholder="Enter ticket ID"
-                required
-              />
-            </div>
-
-            {/* Event ID */}
-            <div>
-              <label className="block text-sm font-medium text-gray-300 mb-2">
-                Event ID
-              </label>
-              <input
-                type="text"
-                value={formData.event_id}
-                onChange={(e) => setFormData({ ...formData, event_id: e.target.value })}
-                className="w-full px-4 py-3 bg-gray-900 border border-gray-600 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent transition-colors"
-                placeholder="Enter event ID"
-                required
-              />
-            </div>
-
-            {/* User ID */}
-            <div>
-              <label className="block text-sm font-medium text-gray-300 mb-2">
-                User ID
-              </label>
-              <input
-                type="text"
-                value={formData.user_id}
-                onChange={(e) => setFormData({ ...formData, user_id: e.target.value })}
-                className="w-full px-4 py-3 bg-gray-900 border border-gray-600 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent transition-colors"
-                placeholder="Enter user ID"
                 required
               />
             </div>
@@ -201,10 +165,10 @@ export default function AttendancePage() {
           <div className="bg-gray-800 border border-gray-700 rounded-xl p-4">
             <div className="flex items-center gap-3 mb-2">
               <Ticket className="w-5 h-5 text-orange-500" />
-              <span className="font-medium text-white">QR Code Format</span>
+              <span className="font-medium text-white">Simplified Process</span>
             </div>
             <p className="text-sm text-gray-400">
-              Ticket QR codes should contain ticket_id, event_id, and user_id
+              Just scan or enter the ticket ID - marks attendance for all users on the ticket
             </p>
           </div>
           <div className="bg-gray-800 border border-gray-700 rounded-xl p-4">
@@ -213,7 +177,7 @@ export default function AttendancePage() {
               <span className="font-medium text-white">Validation</span>
             </div>
             <p className="text-sm text-gray-400">
-              System validates ticket ownership and prevents duplicate marking
+              System validates ticket and prevents duplicate marking for all members
             </p>
           </div>
         </div>

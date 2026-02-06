@@ -108,17 +108,17 @@ export default function TicketManagementPage() {
               <div className="flex-1">
                 <h2 className="text-2xl font-bold text-white mb-3">Mark Attendance</h2>
                 <p className="text-gray-300 mb-4 leading-relaxed">
-                  Master attendance marking for any event. Scan QR codes or manually enter
-                  details to mark attendance for participants.
+                  Master attendance marking for any event. Scan ticket QR code or enter ticket ID
+                  to mark attendance for all team members at once.
                 </p>
                 <div className="space-y-2">
                   <div className="flex items-center gap-2 text-sm text-orange-300">
                     <div className="w-1.5 h-1.5 bg-orange-400 rounded-full"></div>
-                    <span>QR code scanning support</span>
+                    <span>Simplified one-field entry</span>
                   </div>
                   <div className="flex items-center gap-2 text-sm text-orange-300">
                     <div className="w-1.5 h-1.5 bg-orange-400 rounded-full"></div>
-                    <span>Validates ticket ownership</span>
+                    <span>Marks all team members automatically</span>
                   </div>
                   <div className="flex items-center gap-2 text-sm text-orange-300">
                     <div className="w-1.5 h-1.5 bg-orange-400 rounded-full"></div>
