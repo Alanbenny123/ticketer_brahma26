@@ -14,11 +14,13 @@ export default function QRScanner({ onScan, onClose }: QRScannerProps) {
   const scannerRef = useRef<Html5Qrcode | null>(null);
   const [error, setError] = useState<string>("");
   const isInitialized = useRef(false);
+  const [cameras, setCameras] = useState<any[]>([]);
+  const [selectedCamera, setSelectedCamera] = useState<string>("");
 
   useEffect(() => {
     if (!isInitialized.current) {
       isInitialized.current = true;
-      startScanner();
+      loadCameras();
     }
     
     return () => {
@@ -26,42 +28,72 @@ export default function QRScanner({ onScan, onClose }: QRScannerProps) {
     };
   }, []);
 
-  const startScanner = async () => {
+  const loadCameras = async () => {
+    try {
+      const devices = await Html5Qrcode.getCameras();
+      console.log("Available cameras:", devices);
+      setCameras(devices);
+      if (devices && devices.length > 0) {
+        // Use the first camera by default
+        setSelectedCamera(devices[0].id);
+        startScanner(devices[0].id);
+      } else {
+        // If no specific cameras detected, try generic camera access
+        console.log("No specific cameras detected, trying generic access");
+        startScannerGeneric();
+      }
+    } catch (err: any) {
+      console.error("Error loading cameras:", err);
+      // Fallback to generic camera access
+      startScannerGeneric();
+    }
+  };
+
+  const startScannerGeneric = async () => {
     // Prevent multiple initializations
-    if (scannerRef.current) return;
+    if (scannerRef.current) {
+      await stopScanner();
+    }
     
     try {
       const html5QrCode = new Html5Qrcode("qr-reader");
       scannerRef.current = html5QrCode;
 
-      // Try with flexible constraints for external webcams like Irium
-      const config = {
-        fps: 30,
-        qrbox: { width: 350, height: 350 },
-        aspectRatio: 1.0,
-        disableFlip: false
-      };
-
-      // Try different camera configurations
+      // Try with environment facing mode (works for most cameras)
+      await html5QrCode.start(
+        { facingMode: "environment" },
+        {
+          fps: 30,
+          qrbox: { width: 350, height: 350 },
+          aspectRatio: 1.0,
+          disableFlip: false
+        },
+        (decodedText) => {
+          console.log("QR Code detected:", decodedText);
+          onScan(decodedText);
+          stopScanner();
+        },
+        (errorMessage) => {
+          // Ignore scanning errors
+        }
+      );
+      setIsScanning(true);
+      setError("");
+    } catch (err: any) {
+      console.error("Environment mode failed, trying user mode:", err);
+      // Try with user facing mode as fallback
       try {
-        // First try: Use any available camera (works better with external webcams)
-        await html5QrCode.start(
-          { facingMode: { ideal: "environment" } },
-          config,
-          (decodedText) => {
-            onScan(decodedText);
-            stopScanner();
-          },
-          (errorMessage) => {
-            // Ignore scanning errors (they happen continuously while scanning)
-          }
-        );
-      } catch (e) {
-        // Fallback: Try with exact facing mode
+        const html5QrCode = new Html5Qrcode("qr-reader");
+        scannerRef.current = html5QrCode;
+        
         await html5QrCode.start(
           { facingMode: "user" },
-          config,
+          {
+            fps: 30,
+            qrbox: { width: 350, height: 350 }
+          },
           (decodedText) => {
+            console.log("QR Code detected:", decodedText);
             onScan(decodedText);
             stopScanner();
           },
@@ -69,12 +101,49 @@ export default function QRScanner({ onScan, onClose }: QRScannerProps) {
             // Ignore scanning errors
           }
         );
+        setIsScanning(true);
+        setError("");
+      } catch (err2: any) {
+        console.error("All camera access methods failed:", err2);
+        setError("Failed to access any camera. Please grant camera permissions and ensure a camera is connected.");
       }
-      
+    }
+  };
+
+  const startScanner = async (cameraId: string) => {
+    // Prevent multiple initializations
+    if (scannerRef.current) {
+      await stopScanner();
+    }
+    
+    try {
+      const html5QrCode = new Html5Qrcode("qr-reader");
+      scannerRef.current = html5QrCode;
+
+      // Use the specific camera ID
+      await html5QrCode.start(
+        cameraId,
+        {
+          fps: 30,
+          qrbox: { width: 350, height: 350 },
+          aspectRatio: 1.0,
+          disableFlip: false
+        },
+        (decodedText) => {
+          console.log("QR Code detected:", decodedText);
+          onScan(decodedText);
+          stopScanner();
+        },
+        (errorMessage) => {
+          // Ignore scanning errors
+        }
+      );
       setIsScanning(true);
+      setError("");
     } catch (err: any) {
-      console.error("Error starting scanner:", err);
-      setError("Failed to access camera. Please ensure camera permissions are granted and Irium webcam is properly connected.");
+      console.error("Error starting scanner with camera ID:", err);
+      // Fallback to generic access
+      startScannerGeneric();
     }
   };
 
@@ -95,10 +164,10 @@ export default function QRScanner({ onScan, onClose }: QRScannerProps) {
 
   return (
     <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-      <div className="bg-slate-800 rounded-2xl p-6 max-w-md w-full">
+      <div className="bg-gray-800 rounded-2xl p-6 max-w-md w-full border border-gray-700">
         <div className="flex items-center justify-between mb-4">
           <h3 className="text-xl font-bold text-white flex items-center gap-2">
-            <Camera className="w-6 h-6 text-blue-400" />
+            <Camera className="w-6 h-6 text-orange-500" />
             Scan QR Code
           </h3>
           <button
@@ -112,16 +181,39 @@ export default function QRScanner({ onScan, onClose }: QRScannerProps) {
           </button>
         </div>
 
+        {/* Camera selector */}
+        {cameras.length > 1 && (
+          <div className="mb-4">
+            <label className="block text-sm font-medium text-gray-300 mb-2">
+              Select Camera
+            </label>
+            <select
+              value={selectedCamera}
+              onChange={(e) => {
+                setSelectedCamera(e.target.value);
+                startScanner(e.target.value);
+              }}
+              className="w-full px-3 py-2 bg-gray-900 border border-gray-600 rounded-lg text-white focus:ring-2 focus:ring-orange-500 focus:border-transparent"
+            >
+              {cameras.map((camera) => (
+                <option key={camera.id} value={camera.id}>
+                  {camera.label || `Camera ${camera.id}`}
+                </option>
+              ))}
+            </select>
+          </div>
+        )}
+
         {error && (
-          <div className="mb-4 p-3 bg-red-500/20 border border-red-500 rounded-lg text-red-300 text-sm">
+          <div className="mb-4 p-3 bg-red-900/30 border border-red-700 rounded-lg text-red-300 text-sm">
             {error}
           </div>
         )}
 
-        <div id="qr-reader" className="rounded-lg overflow-hidden mb-4"></div>
+        <div id="qr-reader" className="rounded-lg overflow-hidden mb-4 bg-black"></div>
 
         <p className="text-gray-400 text-sm text-center">
-          {isScanning ? "Position QR code within the frame" : "Initializing camera..."}
+          {isScanning ? "Position QR code within the frame" : cameras.length > 0 ? "Initializing camera..." : "Detecting cameras..."}
         </p>
       </div>
     </div>
