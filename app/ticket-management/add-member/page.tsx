@@ -19,6 +19,7 @@ interface Member {
 
 interface Ticket {
   id: string;
+  event_id: string;
   event_name: string;
   team_name?: string;
   members: Member[];
