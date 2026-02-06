@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { cookies } from "next/headers";
 import { fetchTicket, fetchUsers } from "@/lib/data-fetcher";
+import { databases } from "@/lib/appwrite/backend";
 
 /**
  * API Route: Get Ticket Information
@@ -54,6 +55,19 @@ export async function GET(req: Request) {
       );
     }
 
+    // Fetch event information from events collection
+    let eventName = ticketData.event_name || "Unknown Event";
+    try {
+      const eventDoc = await databases.getDocument(
+        process.env.NEXT_PUBLIC_APPWRITE_DATABASE_ID!,
+        process.env.NEXT_PUBLIC_APPWRITE_COLLECTION_EVENTS || "events",
+        event_id
+      );
+      eventName = (eventDoc as any).name || (eventDoc as any).event_name || eventName;
+    } catch (eventError) {
+      console.log("Could not fetch event details, using ticket's event_name:", eventError);
+    }
+
     // Get student IDs from ticket
     const studIds: string[] = ticketData.stud_id || [];
 
@@ -81,7 +95,7 @@ export async function GET(req: Request) {
       ticket: {
         id: ticketData.$id,
         event_id: ticketData.event_id,
-        event_name: ticketData.event_name,
+        event_name: eventName,
         team_name: ticketData.team_name,
         active: ticketData.active,
         members,
