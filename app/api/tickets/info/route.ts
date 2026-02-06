@@ -56,16 +56,17 @@ export async function GET(req: Request) {
     }
 
     // Fetch event information from events collection
-    let eventName = ticketData.event_name || "Unknown Event";
+    let eventName = "Unknown Event";
     try {
       const eventDoc = await databases.getDocument(
         process.env.NEXT_PUBLIC_APPWRITE_DATABASE_ID!,
         process.env.NEXT_PUBLIC_APPWRITE_COLLECTION_EVENTS || "events",
-        event_id
+        event_id  // event_id is the $id of the event document
       );
-      eventName = (eventDoc as any).name || (eventDoc as any).event_name || eventName;
+      eventName = (eventDoc as any).event_name || "Unknown Event";
     } catch (eventError) {
-      console.log("Could not fetch event details, using ticket's event_name:", eventError);
+      console.log("Could not fetch event details:", eventError);
+      eventName = ticketData.event_name || "Unknown Event";
     }
 
     // Get student IDs from ticket
