@@ -338,7 +338,10 @@ export default function AddMemberPage() {
                 </h3>
                 <div className="space-y-2 text-sm">
                   <p className="text-gray-300">
-                    <span className="font-medium">Event:</span> {ticket.event_name}
+                    <span className="font-medium">Event ID:</span> {ticket.event_id}
+                  </p>
+                  <p className="text-gray-300">
+                    <span className="font-medium">Event Name:</span> {ticket.event_name}
                   </p>
                   {ticket.team_name && (
                     <p className="text-gray-300">
@@ -346,7 +349,7 @@ export default function AddMemberPage() {
                     </p>
                   )}
                   <p className="text-gray-300">
-                    <span className="font-medium">Current Members:</span> {ticket.members.length} / {ticket.max_size}
+                    <span className="font-medium">Current Members:</span> {ticket.members.length}
                   </p>
                   <div className="mt-3">
                     <p className="font-medium mb-2 text-gray-300">Members:</p>
