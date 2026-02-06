@@ -37,7 +37,6 @@ export default function AddMemberPage() {
   const [ticketId, setTicketId] = useState("");
   const [eventId, setEventId] = useState("");
   const [newUserId, setNewUserId] = useState("");
-  const [maxTeamSize, setMaxTeamSize] = useState(4);
 
   // Ticket info state
   const [ticket, setTicket] = useState<Ticket | null>(null);
@@ -183,7 +182,6 @@ export default function AddMemberPage() {
           ticket_id: ticketId,
           new_user_id: newUserId,
           event_id: eventId,
-          max_team_size: maxTeamSize,
         }),
       });
 
@@ -385,27 +383,6 @@ export default function AddMemberPage() {
                   <p className="text-sm text-gray-400">{newUser.email}</p>
                 </div>
               )}
-            </div>
-
-            {/* Max Team Size */}
-            <div>
-              <label className="block text-sm font-semibold text-gray-300 mb-2">
-                Max Team Size
-              </label>
-              <select
-                value={maxTeamSize}
-                onChange={(e) => setMaxTeamSize(Number(e.target.value))}
-                className="w-full px-4 py-3 bg-gray-900 border border-gray-600 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent text-white"
-              >
-                <option value={2}>2 members</option>
-                <option value={3}>3 members</option>
-                <option value={4}>4 members</option>
-                <option value={5}>5 members</option>
-                <option value={6}>6 members</option>
-              </select>
-              <p className="text-xs text-gray-400 mt-1">
-                Maximum number of members allowed for this ticket
-              </p>
             </div>
 
             {/* Submit Button */}
