@@ -5,7 +5,6 @@
 All compilation errors have been resolved! The project uses **Appwrite** as the database backend.
 
 ## What Was Fixed
-
 1. **Created `package.json`** - Added all required dependencies:
    - next (v14.1.0)
    - react & react-dom
