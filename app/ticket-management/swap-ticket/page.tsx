@@ -54,17 +54,35 @@ export default function SwapTicketPage() {
   }, [message]);
 
   const handleScan = (data: string) => {
+    console.log("QR Code scanned:", data);
     try {
-      // Parse QR code data
+      // Try parsing as JSON first
       const parsed = JSON.parse(data);
-      if (parsed.ticket_id) setTicketId(parsed.ticket_id);
-      if (parsed.event_id) setEventId(parsed.event_id);
-      if (parsed.user_id) setFromUserId(parsed.user_id);
+      let fieldsSet = 0;
+      if (parsed.ticket_id) { setTicketId(parsed.ticket_id); fieldsSet++; }
+      if (parsed.event_id) { setEventId(parsed.event_id); fieldsSet++; }
+      if (parsed.user_id) { setFromUserId(parsed.user_id); fieldsSet++; }
+      
       setShowScanner(false);
-      setMessage({ type: "success", text: "QR code scanned successfully" });
+      if (fieldsSet > 0) {
+        setMessage({ type: "success", text: `QR code scanned! ${fieldsSet} field(s) filled.` });
+      } else {
+        setMessage({ type: "error", text: "QR code is valid JSON but missing required fields (ticket_id, event_id, user_id)" });
+      }
     } catch (err) {
-      setMessage({ type: "error", text: "Invalid QR code format" });
+      // If not JSON, try plain text format
       setShowScanner(false);
+      if (data && data.length > 0) {
+        // Assume it's a ticket ID if it's short enough
+        if (data.length < 50 && !data.includes('http')) {
+          setTicketId(data);
+          setMessage({ type: "success", text: "QR code scanned as Ticket ID" });
+        } else {
+          setMessage({ type: "error", text: `QR code format not recognized. Scanned: "${data.substring(0, 50)}..."` });
+        }
+      } else {
+        setMessage({ type: "error", text: "QR code is empty" });
+      }
     }
   };
 

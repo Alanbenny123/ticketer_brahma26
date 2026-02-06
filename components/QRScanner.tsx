@@ -13,45 +13,79 @@ export default function QRScanner({ onScan, onClose }: QRScannerProps) {
   const [isScanning, setIsScanning] = useState(false);
   const scannerRef = useRef<Html5Qrcode | null>(null);
   const [error, setError] = useState<string>("");
+  const isInitialized = useRef(false);
 
   useEffect(() => {
-    startScanner();
+    if (!isInitialized.current) {
+      isInitialized.current = true;
+      startScanner();
+    }
+    
     return () => {
       stopScanner();
     };
   }, []);
 
   const startScanner = async () => {
+    // Prevent multiple initializations
+    if (scannerRef.current) return;
+    
     try {
       const html5QrCode = new Html5Qrcode("qr-reader");
       scannerRef.current = html5QrCode;
 
-      await html5QrCode.start(
-        { facingMode: "environment" },
-        {
-          fps: 10,
-          qrbox: { width: 250, height: 250 }
-        },
-        (decodedText) => {
-          onScan(decodedText);
-          stopScanner();
-        },
-        (errorMessage) => {
-          // Ignore scanning errors (they happen continuously while scanning)
-        }
-      );
+      // Try with flexible constraints for external webcams like Irium
+      const config = {
+        fps: 30,
+        qrbox: { width: 350, height: 350 },
+        aspectRatio: 1.0,
+        disableFlip: false
+      };
+
+      // Try different camera configurations
+      try {
+        // First try: Use any available camera (works better with external webcams)
+        await html5QrCode.start(
+          { facingMode: { ideal: "environment" } },
+          config,
+          (decodedText) => {
+            onScan(decodedText);
+            stopScanner();
+          },
+          (errorMessage) => {
+            // Ignore scanning errors (they happen continuously while scanning)
+          }
+        );
+      } catch (e) {
+        // Fallback: Try with exact facing mode
+        await html5QrCode.start(
+          { facingMode: "user" },
+          config,
+          (decodedText) => {
+            onScan(decodedText);
+            stopScanner();
+          },
+          (errorMessage) => {
+            // Ignore scanning errors
+          }
+        );
+      }
+      
       setIsScanning(true);
     } catch (err: any) {
       console.error("Error starting scanner:", err);
-      setError("Failed to access camera. Please ensure camera permissions are granted.");
+      setError("Failed to access camera. Please ensure camera permissions are granted and Irium webcam is properly connected.");
     }
   };
 
   const stopScanner = async () => {
     if (scannerRef.current) {
       try {
-        await scannerRef.current.stop();
+        if (scannerRef.current.isScanning) {
+          await scannerRef.current.stop();
+        }
         scannerRef.current.clear();
+        scannerRef.current = null;
       } catch (err) {
         console.error("Error stopping scanner:", err);
       }

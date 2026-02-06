@@ -19,8 +19,9 @@ export default function AttendancePage() {
   });
 
   const handleScan = (data: string) => {
+    console.log("QR Code scanned:", data);
     try {
-      // Parse QR code data (assuming JSON format: {"ticket_id":"xxx","user_id":"yyy","event_id":"zzz"})
+      // Try parsing as JSON first
       const parsed = JSON.parse(data);
       setFormData({
         ticket_id: parsed.ticket_id || "",
@@ -28,10 +29,31 @@ export default function AttendancePage() {
         user_id: parsed.user_id || "",
       });
       setShowScanner(false);
-      setError("");
+      if (parsed.ticket_id || parsed.event_id || parsed.user_id) {
+        setError("");
+        setSuccess(true);
+        setTimeout(() => setSuccess(false), 2000);
+      } else {
+        setError("QR code is valid JSON but missing required fields");
+      }
     } catch (err) {
-      setError("Invalid QR code format");
+      // If not JSON, try plain text format
       setShowScanner(false);
+      if (data && data.length > 0) {
+        // Assume it's a ticket ID if it's short enough
+        if (data.length < 50 && !data.includes('http')) {
+          setFormData({
+            ticket_id: data,
+            event_id: "",
+            user_id: "",
+          });
+          setError("");
+        } else {
+          setError(`QR code format not recognized. Scanned: "${data.substring(0, 50)}..."`);
+        }
+      } else {
+        setError("QR code is empty");
+      }
     }
   };
 
