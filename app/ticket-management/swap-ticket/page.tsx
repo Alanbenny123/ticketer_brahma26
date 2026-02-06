@@ -14,6 +14,7 @@ interface User {
 
 interface Ticket {
   id: string;
+  event_id: string;
   event_name: string;
   team_name?: string;
   members: User[];
@@ -42,6 +43,7 @@ export default function SwapTicketPage() {
   const [searchingToUser, setSearchingToUser] = useState(false);
 
   const [ticket, setTicket] = useState<Ticket | null>(null);
+  const [loadingTicket, setLoadingTicket] = useState(false);
   const [fromUser, setFromUser] = useState<User | null>(null);
   const [toUser, setToUser] = useState<User | null>(null);
 
@@ -66,6 +68,13 @@ export default function SwapTicketPage() {
       setShowScanner(false);
       if (fieldsSet > 0) {
         setMessage({ type: "success", text: `QR code scanned! ${fieldsSet} field(s) filled.` });
+        // Auto-load ticket info and user info
+        if (parsed.ticket_id && parsed.event_id) {
+          loadTicketInfoWithIds(parsed.ticket_id, parsed.event_id);
+        }
+        if (parsed.user_id) {
+          loadUserInfo(parsed.user_id, "from");
+        }
       } else {
         setMessage({ type: "error", text: "QR code is valid JSON but missing required fields (ticket_id, event_id, user_id)" });
       }
@@ -83,6 +92,44 @@ export default function SwapTicketPage() {
       } else {
         setMessage({ type: "error", text: "QR code is empty" });
       }
+    }
+  };
+
+  const loadTicketInfoWithIds = async (tId: string, eId: string) => {
+    setLoadingTicket(true);
+    try {
+      const response = await fetch(`/api/tickets/info?ticket_id=${tId}&event_id=${eId}`);
+      if (response.ok) {
+        const data = await response.json();
+        setTicket(data.ticket);
+        setMessage({ type: "success", text: `Ticket loaded! Event: ${data.ticket.event_name}` });
+      } else {
+        setMessage({ type: "error", text: "Failed to load ticket information" });
+      }
+    } catch (error) {
+      console.error("Load ticket error:", error);
+      setMessage({ type: "error", text: "Error loading ticket information" });
+    } finally {
+      setLoadingTicket(false);
+    }
+  };
+
+  const loadUserInfo = async (userId: string, type: "from" | "to") => {
+    try {
+      const response = await fetch(`/api/users/search?q=${userId}`);
+      if (response.ok) {
+        const data = await response.json();
+        if (data.users && data.users.length > 0) {
+          const user = data.users.find((u: User) => u.id === userId) || data.users[0];
+          if (type === "from") {
+            setFromUser(user);
+          } else {
+            setToUser(user);
+          }
+        }
+      }
+    } catch (error) {
+      console.error("Load user error:", error);
     }
   };
 
@@ -276,6 +323,42 @@ export default function SwapTicketPage() {
                 required
               />
             </div>
+
+            {/* Current Ticket Info */}
+            {ticket && (
+              <div className="p-4 bg-orange-900/30 border border-orange-700 rounded-lg">
+                <h3 className="font-semibold text-white mb-3 flex items-center gap-2">
+                  <Users className="w-5 h-5 text-orange-500" />
+                  Current Ticket Information
+                </h3>
+                <div className="space-y-2 text-sm">
+                  <p className="text-gray-300">
+                    <span className="font-medium">Event ID:</span> {ticket.event_id}
+                  </p>
+                  <p className="text-gray-300">
+                    <span className="font-medium">Event Name:</span> {ticket.event_name}
+                  </p>
+                  {ticket.team_name && (
+                    <p className="text-gray-300">
+                      <span className="font-medium">Team:</span> {ticket.team_name}
+                    </p>
+                  )}
+                  <p className="text-gray-300">
+                    <span className="font-medium">Current Members:</span> {ticket.members.length}
+                  </p>
+                  <div className="mt-3">
+                    <p className="font-medium mb-2 text-gray-300">Members:</p>
+                    <ul className="space-y-1 pl-4">
+                      {ticket.members.map((member) => (
+                        <li key={member.id} className="text-gray-400">
+                          • {member.name}
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                </div>
+              </div>
+            )}
 
             {/* From User */}
             <div>
