@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { cookies } from "next/headers";
 import { databases } from "@/lib/appwrite/backend";
+import { ID, Query } from "node-appwrite";
 
 /**
  * API Route: Mark Attendance
@@ -72,55 +73,57 @@ export async function POST(req: Request) {
       );
     }
 
-    // Get existing attendance records
-    const attendanceRecords = ticketData.attendance || [];
+    // Check existing attendance records in the attendance collection
+    const existingAttendance = await databases.listDocuments(
+      process.env.NEXT_PUBLIC_APPWRITE_DATABASE_ID!,
+      process.env.NEXT_PUBLIC_APPWRITE_COLLECTION_ATTENDANCE || "attendance",
+      [
+        Query.equal("ticket_id", ticket_id),
+        Query.equal("event_id", event_id)
+      ]
+    );
+
+    const alreadyMarkedUsers = new Set(
+      existingAttendance.documents.map((doc: any) => doc.stud_id)
+    );
     
-    // Mark attendance for all users on the ticket
-    const attendanceTimestamp = timestamp || new Date().toISOString();
-    const markedBy = coordEventId || "main_coordinator";
-    const newAttendanceRecords: any[] = [];
+    // Mark attendance for users not yet marked
+    const newlyMarked: string[] = [];
     
-    for (const user_id of studIds) {
-      // Check if this user's attendance is already marked
-      const alreadyMarked = attendanceRecords.some(
-        (record: any) => record.user_id === user_id
-      );
-      
-      if (!alreadyMarked) {
-        newAttendanceRecords.push({
-          user_id,
-          timestamp: attendanceTimestamp,
-          marked_by: markedBy,
-        });
+    for (const stud_id of studIds) {
+      if (!alreadyMarkedUsers.has(stud_id)) {
+        try {
+          await databases.createDocument(
+            process.env.NEXT_PUBLIC_APPWRITE_DATABASE_ID!,
+            process.env.NEXT_PUBLIC_APPWRITE_COLLECTION_ATTENDANCE || "attendance",
+            ID.unique(),
+            {
+              event_id,
+              ticket_id,
+              stud_id,
+            }
+          );
+          newlyMarked.push(stud_id);
+        } catch (createError) {
+          console.error(`Failed to mark attendance for user ${stud_id}:`, createError);
+        }
       }
     }
 
-    if (newAttendanceRecords.length === 0) {
+    if (newlyMarked.length === 0) {
       return NextResponse.json(
         { ok: false, error: "Attendance already marked for all users on this ticket" },
         { status: 400 }
       );
     }
 
-    const updatedAttendance = [...attendanceRecords, ...newAttendanceRecords];
-
-    await databases.updateDocument(
-      process.env.NEXT_PUBLIC_APPWRITE_DATABASE_ID!,
-      process.env.NEXT_PUBLIC_APPWRITE_COLLECTION_TICKETS!,
-      ticket_id,
-      {
-        attendance: updatedAttendance,
-        last_modified: new Date().toISOString(),
-      }
-    );
-
     return NextResponse.json({
       ok: true,
-      message: `Attendance marked successfully for ${newAttendanceRecords.length} user(s)`,
+      message: `Attendance marked successfully for ${newlyMarked.length} user(s)`,
       ticket_id,
-      users_marked: newAttendanceRecords.map(r => r.user_id),
-      timestamp: attendanceTimestamp,
-      total_attended: updatedAttendance.length,
+      event_id,
+      users_marked: newlyMarked,
+      total_attended: existingAttendance.documents.length + newlyMarked.length,
       total_members: studIds.length
     });
 
