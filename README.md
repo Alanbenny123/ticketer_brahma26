@@ -1,5 +1,4 @@
 # Ticketer - Event Ticket Management System
-
 ## Setup Complete
 
 All compilation errors have been resolved! The project uses **Appwrite** as the database backend.
