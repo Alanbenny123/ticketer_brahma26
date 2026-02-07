@@ -417,7 +417,7 @@ export default function AddMemberPage() {
                     <ul className="space-y-1 pl-4">
                       {ticket.members.map((member) => (
                         <li key={member.stud_id} className="text-gray-400">
-                          • {member.name}
+                          • {member.name} ({member.stud_id})
                         </li>
                       ))}
                     </ul>
