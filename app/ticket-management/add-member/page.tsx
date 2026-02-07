@@ -183,7 +183,7 @@ export default function AddMemberPage() {
 
   const selectUser = (user: User) => {
     setNewUser(user);
-    setNewUserIds([user.id]);  // Using array for multiple users
+    setNewUserIds([user.id.toLowerCase()]);
     setSearchUser(user.name);
     setUserResults([]);
   };
@@ -192,7 +192,9 @@ export default function AddMemberPage() {
     e.preventDefault();
 
     // Filter out empty user IDs
-    const validUserIds = newUserIds.filter(id => id.trim() !== "");
+    const validUserIds = newUserIds
+      .map((id) => id.trim().toLowerCase())
+      .filter((id) => id !== "");
 
     if (!ticketId || !eventId || validUserIds.length === 0) {
       setMessage({ type: "error", text: "Please fill in ticket info and at least one user ID" });
@@ -437,7 +439,7 @@ export default function AddMemberPage() {
                       value={userId}
                       onChange={(e) => {
                         const updated = [...newUserIds];
-                        updated[index] = e.target.value;
+                        updated[index] = e.target.value.toLowerCase();
                         setNewUserIds(updated);
                       }}
                       placeholder={`Enter user ID ${index + 1}`}

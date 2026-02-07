@@ -63,7 +63,7 @@ export default function SwapTicketPage() {
       let fieldsSet = 0;
       if (parsed.ticket_id) { setTicketId(parsed.ticket_id.toLowerCase()); fieldsSet++; }
       if (parsed.event_id) { setEventId(parsed.event_id); fieldsSet++; }
-      if (parsed.user_id) { setFromUserId(parsed.user_id); fieldsSet++; }
+      if (parsed.user_id) { setFromUserId(parsed.user_id.toLowerCase()); fieldsSet++; }
       
       setShowScanner(false);
       if (fieldsSet > 0) {
@@ -369,7 +369,7 @@ export default function SwapTicketPage() {
                 <input
                   type="text"
                   value={fromUserId}
-                  onChange={(e) => setFromUserId(e.target.value)}
+                  onChange={(e) => setFromUserId(e.target.value.toLowerCase())}
                   placeholder="Enter user ID"
                   className="w-full px-4 py-3 bg-gray-900 border border-gray-600 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent text-white placeholder-gray-500"
                   required
@@ -392,7 +392,7 @@ export default function SwapTicketPage() {
                 <input
                   type="text"
                   value={toUserId}
-                  onChange={(e) => setToUserId(e.target.value)}
+                  onChange={(e) => setToUserId(e.target.value.toLowerCase())}
                   placeholder="Enter user ID"
                   className="w-full px-4 py-3 bg-gray-900 border border-gray-600 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent text-white placeholder-gray-500"
                   required

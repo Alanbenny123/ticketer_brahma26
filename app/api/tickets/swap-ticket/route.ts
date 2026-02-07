@@ -34,8 +34,10 @@ export async function POST(req: Request) {
     const body: SwapTicketRequest = await req.json();
     let { ticket_id, from_user_id, to_user_id, event_id, reason } = body;
 
-    // Normalize ticket_id to lowercase for case-insensitive matching
+    // Normalize IDs to lowercase for case-insensitive matching
     ticket_id = ticket_id?.toLowerCase();
+    from_user_id = from_user_id?.toLowerCase();
+    to_user_id = to_user_id?.toLowerCase();
 
     // Validate required fields
     if (!ticket_id || !from_user_id || !to_user_id || !event_id) {

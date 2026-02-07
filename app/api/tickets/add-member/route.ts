@@ -32,8 +32,9 @@ export async function POST(req: Request) {
     const body: AddMemberRequest = await req.json();
     let { ticket_id, new_user_id, event_id, max_team_size = 4 } = body;
 
-    // Normalize ticket_id to lowercase for case-insensitive matching
+    // Normalize IDs to lowercase for case-insensitive matching
     ticket_id = ticket_id?.toLowerCase();
+    new_user_id = new_user_id?.toLowerCase();
 
     // Validate required fields
     if (!ticket_id || !new_user_id || !event_id) {
