@@ -36,13 +36,13 @@ export default function AddMemberPage() {
   // Form state
   const [ticketId, setTicketId] = useState("");
   const [eventId, setEventId] = useState("");
-  const [newUserId, setNewUserId] = useState("");
+  const [newUserIds, setNewUserIds] = useState<string[]>([""]);  // Array for multiple users
 
   // Ticket info state
   const [ticket, setTicket] = useState<Ticket | null>(null);
   const [loadingTicket, setLoadingTicket] = useState(false);
 
-  // New user state
+  // New user state - keeping for compatibility but using array
   const [newUser, setNewUser] = useState<User | null>(null);
   const [searchUser, setSearchUser] = useState("");
   const [userResults, setUserResults] = useState<User[]>([]);
@@ -190,8 +190,11 @@ export default function AddMemberPage() {
   const handleAddMember = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    if (!ticketId || !newUserId || !eventId) {
-      setMessage({ type: "error", text: "Please fill in all required fields" });
+    // Filter out empty user IDs
+    const validUserIds = newUserIds.filter(id => id.trim() !== "");
+
+    if (!ticketId || !eventId || validUserIds.length === 0) {
+      setMessage({ type: "error", text: "Please fill in ticket info and at least one user ID" });
       return;
     }
 
@@ -199,37 +202,67 @@ export default function AddMemberPage() {
     setMessage(null);
 
     try {
-      const response = await fetch("/api/tickets/add-member", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          ticket_id: ticketId,
-          new_user_id: newUserId,
-          event_id: eventId,
-        }),
-      });
+      let successCount = 0;
+      let failCount = 0;
+      const errors: string[] = [];
 
-      const data = await response.json();
+      // Add each user one by one
+      for (const userId of validUserIds) {
+        try {
+          const response = await fetch("/api/tickets/add-member", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              ticket_id: ticketId,
+              new_user_id: userId,
+              event_id: eventId,
+            }),
+          });
 
-      if (data.ok) {
+          const data = await response.json();
+
+          if (data.ok) {
+            successCount++;
+          } else {
+            failCount++;
+            errors.push(`${userId}: ${data.error}`);
+          }
+        } catch (error) {
+          failCount++;
+          errors.push(`${userId}: Network error`);
+        }
+      }
+
+      // Show results
+      if (successCount > 0 && failCount === 0) {
         setMessage({ 
           type: "success", 
-          text: `Successfully added ${newUser?.name} to ticket ${ticketId}. Total members: ${data.total_members}` 
+          text: `Successfully added ${successCount} member(s) to ticket!` 
         });
         
         // Reset form after 2 seconds
         setTimeout(() => {
-          setNewUserId("");
+          setNewUserIds([""]);  // Reset to single empty input
           setNewUser(null);
           setSearchUser("");
-          loadTicketInfo(); // Reload ticket info
+          if (ticketId && eventId) {
+            loadTicketInfoWithIds(ticketId, eventId); // Reload ticket info
+          }
         }, 2000);
+      } else if (successCount > 0 && failCount > 0) {
+        setMessage({ 
+          type: "error", 
+          text: `Added ${successCount} member(s), but ${failCount} failed: ${errors.join(", ")}` 
+        });
+        if (ticketId && eventId) {
+          loadTicketInfoWithIds(ticketId, eventId);
+        }
       } else {
-        setMessage({ type: "error", text: data.error || "Failed to add member" });
+        setMessage({ type: "error", text: `Failed to add members: ${errors.join(", ")}` });
       }
     } catch (error) {
       console.error("Add member error:", error);
-      setMessage({ type: "error", text: "An error occurred while adding the member" });
+      setMessage({ type: "error", text: "An error occurred while adding members" });
     } finally {
       setAdding(false);
     }
@@ -388,33 +421,68 @@ export default function AddMemberPage() {
               </div>
             )}
 
-            {/* New User to Add */}
+            {/* New Users to Add */}
             <div>
               <label className="block text-sm font-semibold text-gray-300 mb-2">
-                New User ID *
+                User IDs to Add *
               </label>
-              <input
-                type="text"
-                value={newUserId}
-                onChange={(e) => setNewUserId(e.target.value)}
-                placeholder="Enter user ID to add"
-                className="w-full px-4 py-3 bg-gray-900 border border-gray-600 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent text-white placeholder-gray-500"
-                required
-              />
-              {newUser && (
-                <div className="mt-2 p-3 bg-orange-900/30 border border-orange-700 rounded-lg">
-                  <p className="text-sm font-medium text-white">{newUser.name}</p>
-                  <p className="text-sm text-gray-400">{newUser.email}</p>
-                </div>
-              )}
+              <div className="space-y-3">
+                {newUserIds.map((userId, index) => (
+                  <div key={index} className="flex gap-2">
+                    <input
+                      type="text"
+                      value={userId}
+                      onChange={(e) => {
+                        const updated = [...newUserIds];
+                        updated[index] = e.target.value;
+                        setNewUserIds(updated);
+                      }}
+                      placeholder={`Enter user ID ${index + 1}`}
+                      className="flex-1 px-4 py-3 bg-gray-900 border border-gray-600 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent text-white placeholder-gray-500"
+                      required={index === 0}
+                    />
+                    {index > 0 && (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          const updated = newUserIds.filter((_, i) => i !== index);
+                          setNewUserIds(updated);
+                        }}
+                        className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg"
+                      >
+                        Remove
+                      </button>
+                    )}
+                  </div>
+                ))}
+                <button
+                  type="button"
+                  onClick={() => setNewUserIds([...newUserIds, ""])}
+                  className="w-full py-2 bg-gray-700 hover:bg-gray-600 text-white rounded-lg font-medium"
+                >
+                  + Add Another User
+                </button>
+              </div>
             </div>
 
             {/* Submit Button */}
             <button
               type="submit"
-              disabled={adding || !ticket}
+              disabled={adding || !ticket || !ticketId || !eventId}
               className="w-full bg-orange-600 hover:bg-orange-700 disabled:bg-gray-600 text-white font-semibold py-3 px-6 rounded-lg transition-colors flex items-center justify-center gap-2"
             >
+              {adding ? (
+                <>
+                  <RefreshCw className="w-5 h-5 animate-spin" />
+                  Adding Member(s)...
+                </>
+              ) : (
+                <>
+                  <UserPlus className="w-5 h-5" />
+                  Add Member(s) to Ticket
+                </>
+              )}
+            </button>
               {adding ? (
                 <>
                   <RefreshCw className="w-5 h-5 animate-spin" />
