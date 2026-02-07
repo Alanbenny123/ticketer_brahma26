@@ -183,7 +183,7 @@ export default function AddMemberPage() {
 
   const selectUser = (user: User) => {
     setNewUser(user);
-    setNewUserId(user.id);
+    setNewUserIds([user.id]);  // Using array for multiple users
     setSearchUser(user.name);
     setUserResults([]);
   };
@@ -481,18 +481,6 @@ export default function AddMemberPage() {
                 <>
                   <UserPlus className="w-5 h-5" />
                   Add Member(s) to Ticket
-                </>
-              )}
-            </button>
-              {adding ? (
-                <>
-                  <RefreshCw className="w-5 h-5 animate-spin" />
-                  Adding Member...
-                </>
-              ) : (
-                <>
-                  <UserPlus className="w-5 h-5" />
-                  Add Member to Ticket
                 </>
               )}
             </button>
