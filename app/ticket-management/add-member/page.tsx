@@ -269,6 +269,8 @@ export default function AddMemberPage() {
     }
   };
 
+  const hasUserIds = newUserIds.some((id) => id.trim() !== "");
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-900 via-black to-gray-800 p-4 md:p-8">
       <div className="max-w-4xl mx-auto">
@@ -469,7 +471,7 @@ export default function AddMemberPage() {
             {/* Submit Button */}
             <button
               type="submit"
-              disabled={adding || !ticket || !ticketId || !eventId}
+              disabled={adding || !ticketId || !eventId || !hasUserIds}
               className="w-full bg-orange-600 hover:bg-orange-700 disabled:bg-gray-600 text-white font-semibold py-3 px-6 rounded-lg transition-colors flex items-center justify-center gap-2"
             >
               {adding ? (
