@@ -27,17 +27,7 @@ export async function GET(req: Request) {
       );
     }
 
-    // Check coordinator authentication
-    const cookieStore = await cookies();
-    const coordEventId = cookieStore.get("coord_event")?.value;
-    const isMainCoordinator = cookieStore.get("main_coord")?.value === "true";
-
-    if (!isMainCoordinator && (!coordEventId || coordEventId !== event_id)) {
-      return NextResponse.json(
-        { ok: false, error: "Not authorized for this event" },
-        { status: 403 }
-      );
-    }
+    // Auth disabled for this deployment
 
     // Fetch ticket
     const { ticket, success, source } = await fetchTicket(ticket_id);

@@ -54,17 +54,7 @@ export async function POST(req: Request) {
 
     const event_id = ticketData.event_id;
 
-    // Check coordinator authentication
-    const cookieStore = await cookies();
-    const coordEventId = cookieStore.get("coord_event")?.value;
-    const isMainCoordinator = cookieStore.get("main_coord")?.value === "true";
-
-    if (!isMainCoordinator && (!coordEventId || coordEventId !== event_id)) {
-      return NextResponse.json(
-        { ok: false, error: "Not authorized for this event" },
-        { status: 403 }
-      );
-    }
+    // Auth disabled for this deployment
 
     // Get all users from the ticket
     const studIds: string[] = ticketData.stud_id || [];
