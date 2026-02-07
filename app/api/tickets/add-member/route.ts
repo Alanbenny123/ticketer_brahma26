@@ -167,8 +167,9 @@ export async function POST(req: Request) {
 
     } catch (updateError) {
       console.error("Error updating ticket:", updateError);
+      const errorMessage = updateError instanceof Error ? updateError.message : "Unknown error";
       return NextResponse.json(
-        { ok: false, error: "Failed to add member" },
+        { ok: false, error: `Failed to add member: ${errorMessage}` },
         { status: 500 }
       );
     }
