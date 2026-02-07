@@ -61,26 +61,26 @@ export default function AddMemberPage() {
     try {
       // Try parsing as JSON first
       const parsed = JSON.parse(data);
-      let fieldsSet = 0;
-      if (parsed.ticket_id) { 
-        setTicketId(parsed.ticket_id); 
-        fieldsSet++; 
-      }
-      if (parsed.event_id) { 
-        setEventId(parsed.event_id); 
-        fieldsSet++; 
-      }
-      // Don't auto-fill user_id from QR code - that's for the NEW member to add
+      let ticketIdFromQR = parsed.ticket_id;
+      let eventIdFromQR = parsed.event_id;
       
       setShowScanner(false);
-      if (fieldsSet > 0) {
-        setMessage({ type: "success", text: `QR code scanned! ${fieldsSet} field(s) filled.` });
-        // Automatically load ticket info after scanning if we have both IDs
-        if (parsed.ticket_id && parsed.event_id) {
-          loadTicketInfoWithIds(parsed.ticket_id, parsed.event_id);
+      
+      if (ticketIdFromQR) {
+        setTicketId(ticketIdFromQR);
+        
+        if (eventIdFromQR) {
+          // We have both ticket_id and event_id
+          setEventId(eventIdFromQR);
+          setMessage({ type: "success", text: `QR code scanned! Loading ticket info...` });
+          loadTicketInfoWithIds(ticketIdFromQR, eventIdFromQR);
+        } else {
+          // Only have ticket_id, need to fetch ticket to get event_id
+          setMessage({ type: "success", text: `Ticket ID scanned! Loading details...` });
+          fetchTicketAndLoad(ticketIdFromQR);
         }
       } else {
-        setMessage({ type: "error", text: "QR code is valid JSON but missing ticket_id and event_id" });
+        setMessage({ type: "error", text: "QR code is valid JSON but missing ticket_id" });
       }
     } catch (err) {
       // If not JSON, try plain text format (assume it's a ticket ID)
@@ -88,6 +88,8 @@ export default function AddMemberPage() {
       if (data && data.length > 0) {
         if (data.length < 50 && !data.includes('http')) {
           setTicketId(data);
+          setMessage({ type: "success", text: "Ticket ID scanned! Loading details..." });
+          fetchTicketAndLoad(data);
           setMessage({ type: "success", text: "QR code scanned as Ticket ID. Please enter Event ID and load ticket info." });
         } else {
           setMessage({ type: "error", text: `QR code format not recognized. Scanned: "${data.substring(0, 50)}..."` });
@@ -95,6 +97,28 @@ export default function AddMemberPage() {
       } else {
         setMessage({ type: "error", text: "QR code is empty" });
       }
+    }
+  };
+
+  const fetchTicketAndLoad = async (tId: string) => {
+    setLoadingTicket(true);
+    try {
+      // First, get the ticket to extract event_id
+      const response = await fetch(`/api/tickets/get-basic?ticket_id=${tId}`);
+      if (response.ok) {
+        const data = await response.json();
+        const eId = data.ticket.event_id;
+        setEventId(eId);
+        // Now load full ticket info
+        loadTicketInfoWithIds(tId, eId);
+      } else {
+        setLoadingTicket(false);
+        setMessage({ type: "error", text: "Failed to fetch ticket details" });
+      }
+    } catch (error) {
+      console.error("Fetch ticket error:", error);
+      setLoadingTicket(false);
+      setMessage({ type: "error", text: "Error fetching ticket" });
     }
   };
 

@@ -96,10 +96,11 @@ export async function POST(req: Request) {
       );
     }
 
-    // Check if adding this member would exceed max team size
-    if (studIds.length >= max_team_size) {
+    // Optional: Check if adding this member would exceed max team size
+    // Removed strict limit - teams can grow as needed
+    if (studIds.length >= 10) {
       return NextResponse.json(
-        { ok: false, error: `Team is full. Maximum ${max_team_size} members allowed` },
+        { ok: false, error: `Team has reached maximum capacity of 10 members` },
         { status: 400 }
       );
     }
