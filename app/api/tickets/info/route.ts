@@ -14,8 +14,11 @@ import { databases } from "@/lib/appwrite/backend";
 export async function GET(req: Request) {
   try {
     const { searchParams } = new URL(req.url);
-    const ticket_id = searchParams.get("ticket_id");
+    let ticket_id = searchParams.get("ticket_id");
     const event_id = searchParams.get("event_id");
+
+    // Normalize ticket_id to lowercase for case-insensitive matching
+    ticket_id = ticket_id?.toLowerCase();
 
     if (!ticket_id || !event_id) {
       return NextResponse.json(

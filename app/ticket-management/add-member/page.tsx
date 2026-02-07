@@ -67,7 +67,8 @@ export default function AddMemberPage() {
       setShowScanner(false);
       
       if (ticketIdFromQR) {
-        setTicketId(ticketIdFromQR);
+        const normalizedTicketId = ticketIdFromQR.toLowerCase();
+        setTicketId(normalizedTicketId);
         
         if (eventIdFromQR) {
           // We have both ticket_id and event_id
@@ -87,9 +88,9 @@ export default function AddMemberPage() {
       setShowScanner(false);
       if (data && data.length > 0) {
         if (data.length < 50 && !data.includes('http')) {
-          setTicketId(data);
+          setTicketId(data.toLowerCase());
           setMessage({ type: "success", text: "Ticket ID scanned! Loading details..." });
-          fetchTicketAndLoad(data);
+          fetchTicketAndLoad(data.toLowerCase());
           setMessage({ type: "success", text: "QR code scanned as Ticket ID. Please enter Event ID and load ticket info." });
         } else {
           setMessage({ type: "error", text: `QR code format not recognized. Scanned: "${data.substring(0, 50)}..."` });
@@ -343,7 +344,7 @@ export default function AddMemberPage() {
                 <input
                   type="text"
                   value={ticketId}
-                  onChange={(e) => setTicketId(e.target.value)}
+                  onChange={(e) => setTicketId(e.target.value.toLowerCase())}
                   placeholder="Enter ticket ID"
                   className="w-full px-4 py-3 bg-gray-900 border border-gray-600 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent text-white placeholder-gray-500"
                   required

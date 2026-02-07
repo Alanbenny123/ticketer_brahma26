@@ -61,7 +61,7 @@ export default function SwapTicketPage() {
       // Try parsing as JSON first
       const parsed = JSON.parse(data);
       let fieldsSet = 0;
-      if (parsed.ticket_id) { setTicketId(parsed.ticket_id); fieldsSet++; }
+      if (parsed.ticket_id) { setTicketId(parsed.ticket_id.toLowerCase()); fieldsSet++; }
       if (parsed.event_id) { setEventId(parsed.event_id); fieldsSet++; }
       if (parsed.user_id) { setFromUserId(parsed.user_id); fieldsSet++; }
       
@@ -70,7 +70,7 @@ export default function SwapTicketPage() {
         setMessage({ type: "success", text: `QR code scanned! ${fieldsSet} field(s) filled.` });
         // Auto-load ticket info and user info
         if (parsed.ticket_id && parsed.event_id) {
-          loadTicketInfoWithIds(parsed.ticket_id, parsed.event_id);
+          loadTicketInfoWithIds(parsed.ticket_id.toLowerCase(), parsed.event_id);
         }
         if (parsed.user_id) {
           loadUserInfo(parsed.user_id, "from");
@@ -84,7 +84,7 @@ export default function SwapTicketPage() {
       if (data && data.length > 0) {
         // Assume it's a ticket ID if it's short enough
         if (data.length < 50 && !data.includes('http')) {
-          setTicketId(data);
+          setTicketId(data.toLowerCase());
           setMessage({ type: "success", text: "QR code scanned as Ticket ID" });
         } else {
           setMessage({ type: "error", text: `QR code format not recognized. Scanned: "${data.substring(0, 50)}..."` });
@@ -302,7 +302,7 @@ export default function SwapTicketPage() {
               <input
                 type="text"
                 value={ticketId}
-                onChange={(e) => setTicketId(e.target.value)}
+                onChange={(e) => setTicketId(e.target.value.toLowerCase())}
                 placeholder="Enter ticket ID"
                 className="w-full px-4 py-3 bg-gray-900 border border-gray-600 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent text-white placeholder-gray-500"
                 required

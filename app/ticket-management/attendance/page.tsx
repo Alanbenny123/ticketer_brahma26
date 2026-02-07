@@ -22,7 +22,7 @@ export default function AttendancePage() {
       // Try parsing as JSON first
       const parsed = JSON.parse(data);
       setFormData({
-        ticket_id: parsed.ticket_id || "",
+        ticket_id: parsed.ticket_id?.toLowerCase() || "",
       });
       setShowScanner(false);
       if (parsed.ticket_id) {
@@ -39,7 +39,7 @@ export default function AttendancePage() {
         // Assume it's a ticket ID if it's short enough
         if (data.length < 50 && !data.includes('http')) {
           setFormData({
-            ticket_id: data,
+            ticket_id: data.toLowerCase(),
           });
           setError("");
         } else {
@@ -126,7 +126,7 @@ export default function AttendancePage() {
               <input
                 type="text"
                 value={formData.ticket_id}
-                onChange={(e) => setFormData({ ticket_id: e.target.value })}
+                onChange={(e) => setFormData({ ticket_id: e.target.value.toLowerCase() })}
                 className="w-full px-4 py-3 bg-gray-900 border border-gray-600 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent transition-colors"
                 placeholder="Enter ticket ID"
                 required

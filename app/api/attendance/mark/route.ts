@@ -23,7 +23,10 @@ interface MarkAttendanceRequest {
 export async function POST(req: Request) {
   try {
     const body: MarkAttendanceRequest = await req.json();
-    const { ticket_id, timestamp } = body;
+    let { ticket_id, timestamp } = body;
+
+    // Normalize ticket_id to lowercase for case-insensitive matching
+    ticket_id = ticket_id?.toLowerCase();
 
     // Validate required fields
     if (!ticket_id) {
