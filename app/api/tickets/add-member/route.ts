@@ -124,7 +124,6 @@ export async function POST(req: Request) {
         ticket_id,
         {
           stud_id: updatedStudIds,
-          last_modified: new Date().toISOString(),
           member_history: [
             ...(ticketData.member_history || []),
             {
